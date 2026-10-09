@@ -1,5 +1,5 @@
 // Goldgrass offline cache: the page is network-first, everything else cache-first.
-const CACHE = 'goldgrass-v2';
+const CACHE = 'goldgrass-v3';
 const ROOT = self.registration.scope;
 self.addEventListener('install', (e) => { self.skipWaiting(); e.waitUntil(caches.open(CACHE).then((c) => c.addAll([ROOT, ROOT + 'manifest.webmanifest', ROOT + 'icon.svg']).catch(() => {}))); });
 self.addEventListener('activate', (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim())); });
