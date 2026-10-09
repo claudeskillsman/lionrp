@@ -84,9 +84,13 @@ export class Creator {
     const s = this.cat.shape.scale;
     const z = this.zoom;
     const wide = innerWidth > 820;
-    this.camera.position.set(wide ? -0.35 * s : 0, 0.95 * s, 3.9 * s * z);
-    this.camera.lookAt(wide ? -0.35 * s : 0, 0.62 * s - (wide ? 0 : 0.18 * s), 0);
-    this.camera.aspect = innerWidth / innerHeight; this.camera.updateProjectionMatrix();
+    this.camera.position.set(0, 0.95 * s, 3.9 * s * z);
+    this.camera.lookAt(0, 0.62 * s - (wide ? 0 : 0.18 * s), 0);
+    this.camera.aspect = innerWidth / innerHeight;
+    // centre the cat in the space left of the 420px side panel (plus its margins)
+    if (wide) this.camera.setViewOffset(innerWidth, innerHeight, 228, 0, innerWidth, innerHeight);
+    else this.camera.clearViewOffset();
+    this.camera.updateProjectionMatrix();
   }
   private change(fn: () => void, rebuild = true) {
     fn();

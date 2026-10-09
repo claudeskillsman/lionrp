@@ -248,28 +248,47 @@ export class App {
     wrap.style.pointerEvents = 'auto';
   }
   /** Key-art scene (?keyart): a maned lion in golden-hour grass, rim-lit, shallow depth of field. */
+  /** Staged cinematic shot for key art and trailers. Params: sp, ls, x, z, t, face, pose, ca, cd, fov, ch, ty, rain, bokeh, nodof,
+   *  extra=sp:dx:dz:pose:ls:yaw;... companions placed relative to the hero. */
   keyArt(params: URLSearchParams) {
     const g = this.game;
-    const cfg = Object.assign(defaultCat('lion', 'Goldgrass'), { mane: 'full', maneLength: 0.9, build: 0.7, size: 1.08 }) as CatConfig;
+    const num = (k: string, d: number) => (params.has(k) ? parseFloat(params.get(k)!) : d);
+    const mk = (sp: string, ls?: string) => {
+      const c = defaultCat((sp || 'lion') as any, 'Goldgrass') as CatConfig;
+      if (c.species === 'lion') Object.assign(c, { mane: 'full', maneLength: 0.9, build: 0.7, size: 1.08 });
+      if (ls) c.lifeStage = ls as any;
+      return c;
+    };
+    const cfg = mk(params.get('sp') || 'lion', params.get('ls') || undefined);
     this.enterPlay(cfg);
     this.hud!.root.style.display = 'none';
-    const x = parseFloat(params.get('x') || String(SPAWN[0] + 30)), z = parseFloat(params.get('z') || String(SPAWN[1] - 30));
-    g.gw.env.setTime(parseFloat(params.get('t') || '17.85'));
-    g.gw.env.timeSpeed = 0; g.gw.env.rain = 0; g.gw.env.rainTarget = 0; g.gw.env.nextWeatherCheck = 1e9;
+    const x = num('x', SPAWN[0] + 30), z = num('z', SPAWN[1] - 30);
+    g.gw.env.setTime(num('t', 17.85));
+    const rain = num('rain', 0);
+    g.gw.env.timeSpeed = 0; g.gw.env.rain = rain; g.gw.env.rainTarget = rain; g.gw.env.nextWeatherCheck = 1e9;
     const sd = g.gw.env.sunDir;
     const sunYaw = Math.atan2(sd.x, sd.z);
-    const p = g.spawnPlayer(cfg, x, z, sunYaw + parseFloat(params.get('face') || '2.0'));
+    const yaw = sunYaw + num('face', 2.0);
+    const p = g.spawnPlayer(cfg, x, z, yaw);
     const pose = params.get('pose');
     if (pose) p.setPose(pose as any);
+    for (const spec of (params.get('extra') || '').split(';').filter(Boolean)) {
+      const [sp, dx, dz, ps, ls, yw] = spec.split(':');
+      const e = new CatEntity(mk(sp, ls || undefined), { shells: g.quality.furShells, a2c: g.quality.msaa > 0 });
+      e.place(x + parseFloat(dx || '0'), z + parseFloat(dz || '0'), g.world, yaw + parseFloat(yw || '0'));
+      g.addEntity(e);
+      if (ps) e.setPose(ps as any);
+    }
     g.state = 'photo';
-    const camA = sunYaw + Math.PI + parseFloat(params.get('ca') || '0.5');
-    const dist = parseFloat(params.get('cd') || '4.6');
+    const camA = sunYaw + Math.PI + num('ca', 0.5);
+    const dist = num('cd', 4.6);
+    const ty = num('ty', 0.95) * p.size;
     const cx = p.pos.x + Math.sin(camA) * dist, cz = p.pos.z + Math.cos(camA) * dist;
-    g.camera.fov = parseFloat(params.get('fov') || '32'); g.camera.updateProjectionMatrix();
-    g.camera.position.set(cx, Math.max(g.world.height(cx, cz), 0) + parseFloat(params.get('ch') || '1.05'), cz);
-    g.camera.lookAt(p.pos.x, p.pos.y + 0.95, p.pos.z);
-    if (!params.has('nodof')) g.post.enableDOF(true, dist, parseFloat(params.get('bokeh') || '2.5'));
-    g.onUi.push(() => { g.camera.lookAt(p.pos.x, p.pos.y + 0.95, p.pos.z); });
+    g.camera.fov = num('fov', 32); g.camera.updateProjectionMatrix();
+    g.camera.position.set(cx, Math.max(g.world.height(cx, cz), 0) + num('ch', 1.05), cz);
+    g.camera.lookAt(p.pos.x, p.pos.y + ty, p.pos.z);
+    if (!params.has('nodof')) g.post.enableDOF(true, dist, num('bokeh', 2.5));
+    g.onUi.push(() => { g.camera.lookAt(p.pos.x, p.pos.y + ty, p.pos.z); });
   }
   toast(t1: string, t2 = '') {
     const t = el('div', { class: 'gg-toast show' }, el('div', { class: 't1' }, t1), el('div', { class: 't2' }, t2));
