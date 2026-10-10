@@ -8,6 +8,7 @@ import type { PoseName } from '../cat/catRig';
 import { BIOMES, BiomeKey, SPAWN } from '../world/worldgen';
 import { el, icon } from '../ui/style';
 import { makeDenMarker, DenMarker } from './denMarker';
+import { Quests } from './quests';
 
 export const ROLES = ['leader', 'hunter', 'healer', 'member', 'cub'] as const;
 export const ROLE_LABEL: Record<string, string> = { leader: 'Leader', hunter: 'Hunter', healer: 'Healer', member: 'Member', cub: 'Cub', elder: 'Elder' };
@@ -40,6 +41,7 @@ export class SoloMode implements ModeHooks {
   private dens = new Map<string, DenMarker>();
   private droughtCheck = 0;
   private uiTime!: HTMLElement;
+  quests: Quests;
   constructor(private game: Game, private hud: Hud, private char: CatConfig) {
     const existing = Saves.solo(char.id);
     this.save = existing ?? this.fresh();
@@ -63,6 +65,7 @@ export class SoloMode implements ModeHooks {
     hud.addButton('book', 'Journal (J)', () => this.toggleJournal(), true);
     hud.addButton('pride', 'Pride (R)', () => this.togglePride(), true);
     this.buildTimeControl();
+    this.quests = new Quests(game, hud, char.id);
     addEventListener('keydown', this.onKey);
     addEventListener('pagehide', this.persist);
     document.addEventListener('visibilitychange', this.onVis);
@@ -141,6 +144,7 @@ export class SoloMode implements ModeHooks {
     const g = this.game, p = g.player;
     if (this.spawnQueue.length) this.spawnQueue.shift()!();
     if (!p || dt === 0) return;
+    this.quests.update(dt);
     // time, days, aging
     const env = g.gw.env;
     if (env.time < this.lastHour - 12) this.newDay();
@@ -542,5 +546,6 @@ export class SoloMode implements ModeHooks {
     for (const r of this.rivals) for (const a of r.cats) if (this.game.entities.includes(a.e)) this.game.removeEntity(a.e);
     for (const d of this.dens.values()) d.dispose();
     this.uiTime.remove();
+    this.quests.dispose();
   }
 }

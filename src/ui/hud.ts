@@ -233,6 +233,7 @@ export class Hud {
     (this.toast.children[1] as HTMLElement).textContent = t2;
     this.toast.classList.add('show'); this.toastTimer = secs;
   }
+  hideToast() { this.toast.classList.remove('show'); this.toastTimer = 0; }
   say(e: CatEntity, text: string, me = false) {
     const b = el('div', { class: 'gg-bubble' + (me ? ' me' : '') }, me ? `${e.config.name} ${text}` : text);
     this.tagLayer.append(b);

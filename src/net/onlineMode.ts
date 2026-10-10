@@ -12,6 +12,7 @@ import { filterChat, filterName } from './filter';
 import { el, icon } from '../ui/style';
 import { BIOMES, BiomeKey, SPAWN } from '../world/worldgen';
 import { makeDenMarker, DenMarker } from '../game/denMarker';
+import { Quests } from '../game/quests';
 import { EMBLEMS, PRIDE_COLORS, ROLE_LABEL } from '../game/solo';
 
 interface Remote { id: string; name: string; cfg: CatConfig; e: CatEntity | null; lastMsg: number; }
@@ -54,6 +55,7 @@ export class OnlineMode implements ModeHooks {
   private chatScope: 'local' | 'server' = 'local';
   private scopeBtn!: HTMLElement;
   private closed = false;
+  private quests: Quests;
   constructor(private app: App, private hud: Hud, private cfg: CatConfig, private info: { id: string; name: string; private: boolean; code: string | null; account: string }) {
     const g = app.game;
     this.me = info.account;
@@ -68,6 +70,7 @@ export class OnlineMode implements ModeHooks {
     hud.ctrl.onSocial = (act, t) => this.social(act, t);
     hud.addButton('pride', 'Pride (R)', () => this.togglePride(), true);
     hud.addButton('paw', 'Players', () => this.togglePlayers(), true);
+    this.quests = new Quests(g, hud, cfg.id);
     hud.addButton('chat', 'Chat (Enter)', () => this.openChat(), true);
     this.buildChat();
     let st: ReturnType<typeof setTimeout> | null = null;
@@ -148,6 +151,7 @@ export class OnlineMode implements ModeHooks {
   // ---------------- per frame ----------------
   update(dt: number) {
     const g = this.app.game, p = g.player;
+    this.quests.update(dt);
     if (this.buildQueue.length) this.buildRemote(this.buildQueue.shift()!);
     // a shared clock: every client agrees on the time of day and the weather
     const env = g.gw.env;
@@ -449,6 +453,7 @@ export class OnlineMode implements ModeHooks {
   }
   dispose() {
     this.closed = true;
+    this.quests.dispose();
     removeEventListener('keydown', this.onKey);
     removeEventListener('pagehide', this.onHide);
     if (this.ch) { this.ch.untrack().catch(() => {}); sb().removeChannel(this.ch); this.ch = null; }
